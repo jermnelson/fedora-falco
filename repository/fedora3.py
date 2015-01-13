@@ -1,7 +1,11 @@
 __author__ = "Jeremy Nelson"
 import falcon
 
-class FedoraObject(object):
+from . import Repository
 
-    def on_get(self, req, resp):
-        resp.body = ''
+class FedoraObject(Repository):
+
+    def on_get(self, req, resp, pid):
+        output = {"message": "Should Display Fedora Object {}".format(pid)}
+        resp.body = str(output)
+        resp.status = falcon.HTTP_200

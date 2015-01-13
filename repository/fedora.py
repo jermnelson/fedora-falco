@@ -1,20 +1,61 @@
 __author__ = "Jeremy Nelson"
 import falcon
+from . import Repository
 
-class Resource(object):
-    """Fedora Resource wrapper, see 
+
+class Resource(Repository):
+    """Fedora Resource wrapper, see
     https://wiki.duraspace.org/display/FEDORA40/Glossary#Glossary-Resource
 
     >> import fedora
-    >> resource = Resource() # Default wrapper for Fedora at http://localhost:8080
+    >> resource = fedora.Resource()
     """
 
-    def on_get(self, req, resp):
-        """HTTP GET Method response, returns JSON, XML, N3, or Turtle representations
+    def on_delete(self, req, resp, id, predicate=None, object_=None):
+        pass
 
-	Args:
-	    req - HTTP Request
-	    resp - HTTP Response
+    def on_get(self, req, resp, id):
+        """GET Method response, returns JSON, XML, N3, or Turtle representations
+
+	    Args:
+            req -- Request
+            resp -- Response
+	        id -- A unique ID for the Resource, should be UUID
         """
-        resp.body = '{"graph": "Sample graph"}'
-        resp.status = falcon.HTTP_200
+        pass
+
+    def on_patch(self, req, resp, id, sparql):
+        pass
+
+    def on_post(self, req, resp, id=None):
+        pass
+
+    def on_put(self, req, resp, id, predicate_objects):
+        """PUT method takes an id, a list of predicate and object tuples and
+        updates Repository
+
+        Args:
+            req -- Request
+            resp -- Response
+            id -- Unique ID for the Resource
+            predicate_objects -- A list of predicate, object tuples
+        """
+        fedora_url = self.search.query(id)
+        fedora_url_request = urllib.request.Request(
+            fedora_url,
+            data=sparql.encode(),
+            method='PATCH',
+            headers={'Content-Type': 'application/sparql-update'}
+        )
+        if self.opener:
+            result = self.opener(fedora_url_request)
+        else:
+            result = urllib.request.urlopen(fedora_url_request)
+        return True
+
+
+
+class Transaction(Repository):
+
+    def on_get(self, req, resp, token=None):
+        pass
