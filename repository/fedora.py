@@ -30,7 +30,7 @@ class Resource(Repository):
     def on_post(self, req, resp, id=None):
         pass
 
-    def on_put(self, req, resp, id, predicate_objects):
+    def on_put(self, req, resp, id):
         """PUT method takes an id, a list of predicate and object tuples and
         updates Repository
 
@@ -38,9 +38,9 @@ class Resource(Repository):
             req -- Request
             resp -- Response
             id -- Unique ID for the Resource
-            predicate_objects -- A list of predicate, object tuples
         """
         fedora_url = self.search.query(id)
+
         fedora_url_request = urllib.request.Request(
             fedora_url,
             data=sparql.encode(),
