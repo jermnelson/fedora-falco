@@ -1,7 +1,7 @@
 __author__ = "Jeremy Nelson"
 import falcon
 
-from . import Repository
+from .. import Repository
 
 class FedoraObject(Repository):
 

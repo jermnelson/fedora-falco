@@ -5,11 +5,29 @@ Islandora eBadges, Schema.org Editor, and Django BFE projects.
 __author__ = "Jeremy Nelson"
 
 import falcon
+import json
+import rdflib
 import urllib.request
 
 from elasticsearch import Elasticsearch
-from .fuseki import Fuseki
+from .utilities.fuseki import Fuseki
 
+class Search(object):
+    """Search Repository"""
+
+    def __init__(self, search_index, triplestore):
+        self.search_index = search_index
+        self.triplestore = triplestore
+
+    def on_get(self, req, resp):
+        query_phrase = req.get_param('phrase') or '*'
+        return
+
+    def on_post(self, req, resp):
+        return
+
+    def url_from_id(self, id):
+        return fedora_url
 
 class Repository(object):
     """Base repository object"""
@@ -27,8 +45,11 @@ class Repository(object):
         """
         self.fedora = kwargs.get('fedora', None)
         self.fedora3 = kwargs.get('fedora3', None)
-        self.search = kwargs.get('es', Elasticsearch())
         self.triple_store = kwargs.get('fuseki', Fuseki())
+        self.search = Search(
+            kwargs.get('es', Elasticsearch()),
+            self.triple_store)
+
         if self.fedora and self.fedora3:
             raise ValueError("Cannot initialize both Fedora 3.+ {} and "\
                              "Fedora 4 {} in the same repository".format(
@@ -50,5 +71,8 @@ class Repository(object):
                 admin_pwd)
             handler = urllib.request.HTTPBasicAuthHandler(password_mgr)
             self.opener = urllib.request.build_opener(handler)
+
+
+
 
 
