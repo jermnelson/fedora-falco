@@ -20,8 +20,26 @@ class Search(object):
         self.triplestore = triplestore
 
     def on_get(self, req, resp):
-        query_phrase = req.get_param('phrase') or '*'
-        return
+        """Method takes a a phrase, returns the expanded result.
+
+        Args:
+            req -- Request
+            resp -- Response
+        """
+        phrase = req.get_param('phrase') or '*'
+        size = req.get_param('size') or 25
+        resource_type = req.get_param('resource') or None
+        if resource_type:
+            resp.body = json.dumps(self.search_index.search(
+                q=phrase,
+                doc_type=resource_type,
+                size=size))
+        else:
+            resp.body = json.dumps(self.search_index.search(
+                q=phrase,
+                size=size))
+        resp.status = falcon.HTTP_200
+
 
     def on_post(self, req, resp):
         return
