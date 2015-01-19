@@ -11,81 +11,86 @@ except ImportError:
 from ...resources.fedora3 import NAMESPACES
 
 class FoxmlContentHandler(object):
-    xpath_v = "/".join([
-        "{{{0}}}datastreamVersion[last()]",
-        "{{{0}}}xmlContent",
-        "{{{1}}}RDF"])
+    EXCLUDED_TAILS  = [
+        ".xml",
+        ".jp2",
+        "-tn.jpg",
+        "TN",
+        ".swf",
+        "DISS_XML",
+        "-access.mp3",
+        "lg.jpg",
+        "sm.jpg"]
+    SAVED_DATASTREAMS = [
+            "RELS-EXT",
+            "AUDIT",
+            "POLICY",
+            "DC",
+            "MODS",
+            "MARC",
+            "DISS_XML"]
 
     def __init__(self, source_filepath):
         self.foxml_filepath = source_filepath
+        self.info = {}
+
+    def _exclude(self, fedora_object):
+        for tail in FoxmlContentHandler.EXCLUDED_TAILS:
+            if fedora_object.endswith(tail):
+                return True
+        return False
 
     def _process_ds(self, datastream):
-        """Helper Method processes datastream"""
+        """Helper Method processes datastreams"""
         ds_type = datastream.attrib.get("ID")
-        if ds_type.startswith("RELS-EXT"):
-            #self._process_rels_ext(datastream)
+        if ds_type in FoxmlContentHandler.SAVED_DATASTREAMS:
+            if not ds_type.lower() in self.info:
+                self.info[ds_type.lower()] = datastream
+        elif ds_type.startswith("RELS-INT"):
             pass
-        if ds_type.startswith('AUDIT'):
-            pass
-##        for snippet in [
-##            "{{{1}}}Description/{{{0}}}isMemberOfCollection",
-##            "{{{1}}}description/{{{0}}}isMemberOfCollection",
-##            ]:
-##                xpath = "{}/{}".format(FoxmlContentHandler.xpath_v, snippet)
-##                print(xpath.format(
-##                        NAMESPACES.get('foxml'),
-##                        rdflib.RDF))
-##                element = datastream.find(
-##                    xpath.format(
-##                        NAMESPACES.get('foxml'),
-##                        rdflib.RDF))
-##                print("ELement is {}".format(element))
-##                if element:
-##                    collection = element.attrib.get(
-##                        "{{{0}}}resource".format(rdflib.RDF))
-##                    break
-        print("In Process RELS-EXT method collection is {}".format(collection))
-
+        else:
+            if not self._exclude(ds_type):
+                self.info["master-object"] = datastream
 
     def parse(self):
         context = etree.iterparse(open(self.foxml_filepath), events=('end',))
         collection = None
         for action, elem in context:
-            if elem.tag == "{{{0}}}datastream".format(NAMESPACES.get('foxml')):
+            tag = str(elem.tag)
+            if tag.endswith("datastream"):
                 self._process_ds(elem)
-            if elem.tag == "{{{0}}}digitalObject".format(
-                NAMESPACES.get('foxml')):
-                    version = elem.attrib.get('VERSION')
-                    pid = elem.attrib.get('PID')
-            if str(elem.tag).endswith("isMemberOfCollection"):
-                if collection:
-                    pass
-                print(elem.attrib, "{{{0}}}resource".format(rdflib.RDF))
-                collection = elem.attrib.get(
-                    "{{{0}}}resource".format(rdflib.RDF))
-                print(collection)
-
-
-        print("Fedora {} version is {} and collection is ".format(
-            pid,
-            version,
-            collection))
-
-
-##    def startElement(self, name, attrs):
-##        if name == "foxml:datastream":
-##            if 'ID' in attrs:
-##                self.datastream_type = attrs.getValue('ID')
-##            if _id.startswith('AUDIT'):
-##                self.process_audit()
-##            if _id.startswith('POLICY'):
-##                self.process_policy()
-##            if _id.startswith('DC'):
-##                self.process_dublin_Core()
-##            if _id.startswith('MODS'):
-##                self.process_mods()
-##            if _id.startswith('MARC'):
-##                self.process_marc()
+            elif tag.endswith("digitalObject"):
+                    if not "pid" in self.info:
+                        self.info['pid'] = elem.attrib.get('PID')
+                    if not "version" in self.info:
+                        self.info["version"] = elem.attrib.get('VERSION')
+            elif tag.endswith("hasModel"):
+                if not "content_model" in self.info:
+                    self.info["content_model"] = elem.attrib.get(
+                        "{{{0}}}resource".format(rdflib.RDF))
+            elif tag.endswith("contentLocation"):
+                if not "content_location" in self.info:
+                    self.info["content_location"] = elem.attrib.get('REF')
+            elif tag.endswith("isMemberOfCollection") or tag.endswith("isMemberOf"):
+                if not "collection" in self.info:
+                    collection = elem.attrib.get(
+                        "{{{0}}}resource".format(rdflib.RDF))
+                    if len(collection) > 0:
+                        self.info['collection'] = collection
+            elif tag.lower().endswith("description"):
+                fedora_object = elem.attrib.get(
+                    "{{{0}}}about".format(rdflib.RDF))
+                if fedora_object:
+                    if self._exclude(fedora_object):
+                        continue
+                    if 'object-ids' in self.info:
+                        self.info['object-ids'].append(fedora_object)
+                    else:
+                        self.info['object-ids'] = [fedora_object, ]
+            elif tag.endswith("objectProperties"):
+                self.info["obj_properties"] = elem
+        print("Fedora info {}".format(
+            self.info))
 
 
 
