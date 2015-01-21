@@ -9,13 +9,7 @@ try:
     import xml.etree.cElementTree as etree
 except ImportError:
     import xml.etree.ElementTree as etree
-from ...resources.fedora3 import NAMESPACES
-
-ISLANDORA_CONTENT_MODELS = {
-    "pdf": "islandora:sp_pdf",
-    "tif": "islandora:sp_large_image_cmodel",
-    "wav": "islandora:sp_large_image_cmodel"
-}
+from ...resources.fedora3 import ISLANDORA_CONTENT_MODELS, NAMESPACES
 
 FOXML_TEMPLATE = Template("""<foxml:digitalObject VERSION="1.1" PID="{{ pid }}"
  xmlns:foxml="info:fedora/fedora-system:def/foxml#"

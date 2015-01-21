@@ -3,6 +3,12 @@ import falcon
 
 from .. import Repository
 
+ISLANDORA_CONTENT_MODELS = {
+    "pdf": "islandora:sp_pdf",
+    "tif": "islandora:sp_large_image_cmodel",
+    "wav": "islandora:sp_large_image_cmodel"
+}
+
 NAMESPACES ={
     "foxml": "info:fedora/fedora-system:def/foxml#"
 }
