@@ -52,6 +52,9 @@ class Resource(Repository):
         pass
 
     def on_post(self, req, resp, id=None):
+        if not id:
+            # Create a new Resource based on request
+            pass
         pass
 
     def on_put(self, req, resp, id):

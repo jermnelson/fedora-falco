@@ -4,13 +4,51 @@ __author__ = "Jeremy Nelson"
 
 import falcon
 import rdflib
+from jinja2 import Template
 try:
     import xml.etree.cElementTree as etree
 except ImportError:
     import xml.etree.ElementTree as etree
 from ...resources.fedora3 import NAMESPACES
 
+ISLANDORA_CONTENT_MODELS = {
+    "pdf": "islandora:sp_pdf",
+    "tif": "islandora:sp_large_image_cmodel",
+    "wav": "islandora:sp_large_image_cmodel"
+}
+
+FOXML_TEMPLATE = Template("""<foxml:digitalObject VERSION="1.1" PID="{{ pid }}"
+ xmlns:foxml="info:fedora/fedora-system:def/foxml#"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="info:fedora/fedora-system:def/foxml#
+ http://www.fedora.info/definitions/1/0/foxml1-1.xsd">
+ {% if objectProperties %}{{ objectProperties }}{% endif %}
+ {% if marcDatastream %}{{ marcDatastream }}{% endif %}
+ {% if auditDatastream %}{{ auditDatastream }}{% endif %}
+ {% if policyDatastream %}{{ policyDatastream }}{% endif %}
+ {% if modsDatastream %}{{ modsDatastream }}{% endif %}
+ {% if dcDatastream %}{{ dcDatastream }}{% endif %}
+ {% if dissXmlDatastream %}{{ dissXmlDatastream }}{% endif %}
+ <foxml:datastream ID="RELS-EXT" STATE="A" CONTROL_GROUP="X" VERSIONABLE="true">
+    <foxml:datastreamVersion ID="RELS-EXT.0" LABEL="RDF Statements about this Object" MIMETYPE="application/rdf+xml">
+       <foxml:xmlContent>
+        <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          xmlns:fedora="info:fedora/fedora-system:def/relations-external#"
+          xmlns:fedora-model="info:fedora/fedora-system:def/model#"
+          xmlns:islandora="http://islandora.ca/ontology/relsext#">
+          <rdf:Description rdf:about="info:fedora/{{ pid }}">
+            <fedora:isMemberOfCollection rdf:resource="info:fedora/{{ collectionPid }}"/>
+            <fedora-model:hasModel rdf:resource="info:fedora/{{ contentModel }}" />
+          </rdf:Description>
+        </rdf:RDF>
+       </foxml:xmlContent>
+    </foxml:datastreamVersion>
+ </foxml:datastream>
+</foxml:digitalObject>""")
+
+
 class FoxmlContentHandler(object):
+
     EXCLUDED_TAILS  = [
         ".xml",
         ".jp2",
