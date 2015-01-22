@@ -3,13 +3,19 @@ into individual Fedora 3.7 objects"""
 __author__ = "Jeremy Nelson"
 
 import falcon
+import json
 import rdflib
+import urllib.parse
 from jinja2 import Template
 try:
     import xml.etree.cElementTree as etree
 except ImportError:
     import xml.etree.ElementTree as etree
 from ...resources.fedora3 import ISLANDORA_CONTENT_MODELS, NAMESPACES
+for code, namespace in NAMESPACES.items():
+    etree.register_namespace(code, namespace)
+
+
 
 FOXML_TEMPLATE = Template("""<foxml:digitalObject VERSION="1.1" PID="{{ pid }}"
  xmlns:foxml="info:fedora/fedora-system:def/foxml#"
@@ -62,7 +68,7 @@ class FoxmlContentHandler(object):
             "MARC",
             "DISS_XML"]
 
-    def __init__(self, source_filepath):
+    def __init__(self, source_filepath=None):
         self.foxml_filepath = source_filepath
         self.info = {}
 
@@ -71,6 +77,20 @@ class FoxmlContentHandler(object):
             if fedora_object.endswith(tail):
                 return True
         return False
+
+    def _to_xml(self, key):
+        """Helper method takes a key and attempt to serialize the element in
+        self.info or returns None.
+
+        Args:
+            key -- Key in self.info
+        Returns:
+            xml string or None
+        """
+        element = self.info.get(key)
+        if element:
+            return etree.tostring(element)
+        return
 
     def _process_ds(self, datastream):
         """Helper Method processes datastreams"""
@@ -84,7 +104,30 @@ class FoxmlContentHandler(object):
             if not self._exclude(ds_type):
                 self.info["master-object"] = datastream
 
+    def on_post(self, req, resp):
+        print("Before getting fields")
+        fields = urllib.parse.parse_qs(req.stream.read().decode('utf-8'))
+        self.foxml_filepath = fields.get('filepath')[0] or self.foxml_filepath
+        print("File path is {}".format(self.foxml_filepath))
+        self.parse()
+        migrated_foxml = FOXML_TEMPLATE.render(
+            pid=self.info.get('pid'),
+            objectProperties=self._to_xml("obj_properties"),
+            marcDatastream=self._to_xml('marc'),
+            auditDatastream=self._to_xml('audit'),
+            policyDatastream=self._to_xml('policy'),
+            modsDatastream=self._to_xml('mods'),
+            dcDatastream=self._to_xml('dc'),
+            collectionPid=self.info.get('collection'),
+            contentModel=self.info.get('content_model')
+        )
+        print(migrated_foxml)
+        resp.body = migrated_foxml
+        resp.status = falcon.HTTP_201
+
     def parse(self):
+        if self.foxml_filepath is None:
+            raise falcon.HTTPNotFound()
         context = etree.iterparse(open(self.foxml_filepath), events=('end',))
         collection = None
         for action, elem in context:
